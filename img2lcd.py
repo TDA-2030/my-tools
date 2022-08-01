@@ -4,7 +4,10 @@ from PIL import Image
 import numpy as np
 # from pylab import *
 #读取图片并转为数组
-im = np.array(Image.open("solution-platform.jpg"))
+in_img = Image.open("123.jpg")
+in_img = in_img.resize((272, 480))
+in_img.save("temp.png")
+im = np.array(in_img)
 #输出数组的各维度长度以及类型
 im = im.transpose(1,0,2)
 print (im.shape,im.dtype)
