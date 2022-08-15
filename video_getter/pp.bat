@@ -1,0 +1,1 @@
+D:\machine_learning\py37env\Scripts\activate.bat
