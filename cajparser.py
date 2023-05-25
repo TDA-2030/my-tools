@@ -9,6 +9,14 @@ try:
 except ImportError:
     from PyPDF2 import utils as errors
 
+from pathlib import Path
+
+FILE = Path(__file__).resolve()
+ROOT = FILE.parents[0]
+PWD = Path(os.getcwd()).resolve()
+# 设置环境变量
+os.environ['PATH'] += f";{ROOT}"
+
 KDH_PASSPHRASE = b"FZHMEI"
 
 printables = ''.join([(len(repr(chr(x)))==3) and (x != 47) and (x < 128) and chr(x) or '.' for x in range(256)])
@@ -289,19 +297,20 @@ class CAJParser(object):
 
         # Use mutool to repair xref
         try:
-            check_output(["mutool", "clean", "pdf.tmp", "pdf_toc.pdf"], stderr=STDOUT)
+            print(f'Use mutool to repair xref path:{PWD/"pdf.tmp"}')
+            check_output(["mutool", "clean", str(PWD/"pdf.tmp"), "pdf_toc.pdf"], stderr=STDOUT)
         except CalledProcessError as e:
             print(e.output.decode("utf-8"))
             raise SystemExit("Command mutool returned non-zero exit status " + str(e.returncode))
 
         # Add Outlines
         try:
-            add_outlines(self.get_toc(), "pdf_toc.pdf", dest)
+            add_outlines(self.get_toc(), str("pdf_toc.pdf"), dest)
         except errors.PdfReadError as e:
             print("errors.PdfReadError:", str(e))
             copy("pdf_toc.pdf", dest)
             pass
-        os.remove("pdf.tmp")
+        os.remove(PWD/"pdf.tmp")
         os.remove("pdf_toc.pdf")
 
     def _convert_hn(self, dest):
@@ -626,15 +635,16 @@ class CAJParser(object):
         output = output[:eofpos + 5]
 
         #  Write output file.
-        fp = open(dest + ".tmp", "wb")
+        fp = open(PWD/(dest + ".tmp"), "wb")
         fp.write(output)
         fp.close()
 
         # Use mutool to repair xref
         try:
-            check_output(["mutool", "clean", dest + ".tmp", dest], stderr=STDOUT)
+            print(f'Use mutool to repair xref path:{PWD/(dest + ".tmp")}')
+            check_output(["mutool", "clean", str(PWD/(dest + ".tmp")), dest], stderr=STDOUT)
         except CalledProcessError as e:
             print(e.output.decode("utf-8"))
             raise SystemExit("Command mutool returned non-zero exit status " + str(e.returncode))
 
-        os.remove(dest + ".tmp")
+        os.remove(PWD/(dest + ".tmp"))

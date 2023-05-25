@@ -18,15 +18,19 @@ import os
 import struct
 
 import platform
+from pathlib import Path
+
+FILE = Path(__file__).resolve()
+ROOT = FILE.parents[0]
 
 arch = platform.architecture()
 if (arch[1] == 'WindowsPE'):
     if (arch[0] == '64bit'):
-        libjbigdec = cdll.LoadLibrary("./lib/bin/libjbigdec-w64.dll")
+        libjbigdec = cdll.LoadLibrary(str(ROOT/"lib/bin/libjbigdec-w64.dll"))
     else:
-        libjbigdec = cdll.LoadLibrary("./lib/bin/libjbigdec-w32.dll")
+        libjbigdec = cdll.LoadLibrary(str(ROOT/"lib/bin/libjbigdec-w32.dll"))
 else:
-    libjbigdec = cdll.LoadLibrary("./libjbigdec.so")
+    libjbigdec = cdll.LoadLibrary(str(ROOT/"libjbigdec.so"))
 
 #SaveJbigAsBmp = libjbigdec.SaveJbigAsBmp
 #SaveJbigAsBmp.restype = None

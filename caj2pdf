@@ -1,11 +1,111 @@
 #!/usr/bin/env python3
 
-import os
+"""
+pyinstaller --add-data mutool.exe;. --add-data lib/*;lib/bin -F -w caj2pdf
+"""
+
+import os, traceback
 import argparse
 from cajparser import CAJParser
 from utils import add_outlines
 
-if __name__ == "__main__":
+import tkinter
+import webbrowser
+from tkinter import filedialog, messagebox
+from pathlib import Path
+
+FILE = Path(__file__).resolve()
+ROOT = FILE.parents[0]
+PWD = os.getcwd()
+
+class GUI():
+
+    def __init__(self, pwd) -> None:
+        window = tkinter.Tk()
+        self.window = window
+        window.title("caj2pdf tool")
+        window.geometry("640x480")
+        # window.iconbitmap(str(Path(pwd) / "icon.ico"))
+        btn_open = tkinter.Button(window,
+                                  text="打开文件",
+                                  command=self.btn_open_callback)
+        btn_open.pack(expand=tkinter.YES, fill=tkinter.BOTH, side=tkinter.TOP)
+
+        self.btn_merge = tkinter.Button(self.window,
+                                        text="转换",
+                                        command=self.btn_convert_callback)
+        self.btn_merge.pack(expand=tkinter.YES,
+                            fill=tkinter.BOTH,
+                            side=tkinter.TOP)
+        self.btn_merge.config(state=tkinter.DISABLED)
+
+        def open_url(event):
+            webbrowser.open("https://github.com/caj2pdf/caj2pdf", new=0)
+        link = tkinter.Label(window, text='原项目地址: https://github.com/caj2pdf/caj2pdf', font=('Arial', 10), foreground='blue', underline=True)
+        link.pack(side=tkinter.BOTTOM)
+        link.bind("<Button-1>", open_url)
+
+        self.filelist = tkinter.Listbox(self.window)
+        self.filelist.pack(expand=tkinter.YES,
+                           fill=tkinter.BOTH,
+                           side=tkinter.BOTTOM)
+
+        self.window.mainloop()
+
+    def btn_open_callback(self):
+        self.fileName = filedialog.askopenfilenames(title="选择一个或多个caj文件",initialdir=PWD,
+            filetypes=[("CAJ", ".CAJ"), ("CAJ", ".caj")])
+
+        self.filelist.delete(0, tkinter.END)
+        for item in self.fileName:
+            self.filelist.insert(0, item)
+
+        if len(self.fileName) > 0:
+            self.btn_merge.config(state=tkinter.NORMAL)
+        else:
+            self.btn_merge.config(state=tkinter.DISABLED)
+
+    def btn_convert_callback(self):
+        print("push convert btn")
+        self.btn_merge.config(state=tkinter.DISABLED)
+        defdir = Path(self.fileName[0]).parent
+        self.out_path = filedialog.askdirectory(title='选择输出的目录', initialdir=defdir)
+        if self.out_path:
+            self.btn_merge.config(text='转换中...')
+            self.window.update()
+            for item in self.fileName:
+                output = Path(item).with_suffix('.pdf')
+                output = Path(self.out_path) / output.name
+                try:
+                    caj = CAJParser(item)
+                    caj.convert(str(output))
+                    messagebox.showinfo("转换已完成",
+                                    f"您的caj转pdf已完成！\n输出文件到：{output}")
+                except Exception as e:
+                    traceback.print_exc()
+                    messagebox.showinfo("转换失败",
+                                    f"{traceback.format_exc()}")
+                    try:
+                        os.remove('pdf.tmp')
+                    except:
+                        pass
+
+        self.btn_merge.config(text='转换')
+        self.btn_merge.config(state=tkinter.NORMAL)
+
+# 使用os模块的walk函数，搜索出指定目录下的全部PDF文件
+# 获取同一目录下的所有PDF文件的绝对路径
+def getFileName(filedir):
+    print(f"Searching dir{filedir}")
+    file_list = [os.path.join(root, filespath) \
+                 for root, dirs, files in os.walk(filedir) \
+                 for filespath in files \
+                 if str(filespath).endswith('pdf')
+                 ]
+    return file_list if file_list else []
+
+
+def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(help="commands", dest="command")
 
@@ -27,6 +127,12 @@ if __name__ == "__main__":
     text_extract_parser.add_argument("input", help="Path to the CAJ file.")
 
     args = parser.parse_args()
+
+    if not args.command:
+        print('gui mode')
+        pwd = Path(__file__).absolute().parent
+        gui = GUI(pwd)
+        return
 
     if args.command == "show":
         caj = CAJParser(args.input)
@@ -66,3 +172,6 @@ if __name__ == "__main__":
     if args.command == "parse":
         caj = CAJParser(args.input)
         caj.parse()
+
+if __name__ == "__main__":
+    main()
